@@ -39,9 +39,11 @@ def _body_text(msg: Message) -> str:
     if msg.is_multipart():
         for part in msg.walk():
             if part.get_content_type() == "text/plain":
-                return part.get_payload(decode=True).decode(
-                    part.get_content_charset() or "utf-8", "replace"
-                )
+                payload = part.get_payload(decode=True)
+                if payload is not None:
+                    return payload.decode(
+                        part.get_content_charset() or "utf-8", "replace"
+                    )
         return ""
     payload = msg.get_payload(decode=True)
     if payload is None:
@@ -59,9 +61,10 @@ def parse_email(raw: bytes) -> EmailOrder | None:
     status = next(
         (s for s, kw in _STATUS_KEYWORDS if kw in haystack), None
     )
-    url_match = _TRACK_URL_RE.search(body)
-    if status is None and url_match is None:
+    if status is None:
         return None
+
+    url_match = _TRACK_URL_RE.search(body)
 
     order_id = None
     if (m := _ORDER_RE.search(f"{subject}\n{body}")):
@@ -84,7 +87,7 @@ def parse_email(raw: bytes) -> EmailOrder | None:
 
     return EmailOrder(
         order_id=order_id,
-        status=status or STATUS_ORDERED,
+        status=status,
         tracking_url=tracking_url,
         tracking_token=tracking_token,
         last_update=last_update,

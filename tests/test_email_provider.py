@@ -20,3 +20,12 @@ def test_parse_email_extracts_order_and_token():
 def test_parse_email_returns_none_for_unrelated_mail():
     raw = b"From: someone@example.com\r\nSubject: lunch?\r\n\r\nfree at noon?"
     assert parse_email(raw) is None
+
+
+def test_parse_email_returns_none_when_no_status_keyword():
+    raw = (
+        b"From: Wing Orders <no-reply@wing.com>\r\n"
+        b"Subject: Your Wing receipt\r\n\r\n"
+        b"Thanks. Track: https://wing.com/track?order=Z9&token=trk_z9\r\n"
+    )
+    assert parse_email(raw) is None
