@@ -1,0 +1,14 @@
+From: Wing Orders <no-reply@wing.com>
+To: customer@example.com
+Subject: Your Wing order is on the way
+Date: Sun, 02 Aug 2026 14:30:00 +0000
+Message-ID: <order-A1B2C3@wing.com>
+Content-Type: text/plain; charset="utf-8"
+
+Hi there,
+
+Order A1B2C3 is on the way! Your drone is en route.
+
+Track your delivery: https://wing.com/track?order=A1B2C3&token=trk_abc123
+
+Thanks for using Wing.
