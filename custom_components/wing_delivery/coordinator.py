@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -21,6 +22,7 @@ class WingDeliveryCoordinator(DataUpdateCoordinator[WingDeliveryData]):
     def __init__(
         self,
         hass: HomeAssistant,
+        config_entry: ConfigEntry | None,
         email_provider: EmailProvider,
         tracking_provider: TrackingProvider,
         scan_interval: int,
@@ -28,7 +30,7 @@ class WingDeliveryCoordinator(DataUpdateCoordinator[WingDeliveryData]):
         super().__init__(
             hass,
             _LOGGER,
-            config_entry=None,
+            config_entry=config_entry,
             name=DOMAIN,
             update_interval=timedelta(seconds=scan_interval),
         )

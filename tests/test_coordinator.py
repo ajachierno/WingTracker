@@ -64,7 +64,7 @@ async def test_update_fires_event_on_status_change(hass):
         tracking_url="u", tracking_token="t", last_update=None,
     )
     coord = WingDeliveryCoordinator(
-        hass, _FakeEmail(order), _FakeTracking(), 60
+        hass, None, _FakeEmail(order), _FakeTracking(), 60
     )
     events = []
     hass.bus.async_listen(EVENT_STATUS_CHANGED, lambda e: events.append(e.data))
