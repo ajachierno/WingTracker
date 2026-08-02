@@ -77,3 +77,15 @@ async def test_update_fires_event_on_status_change(hass):
     assert events[0]["new_status"] == STATUS_EN_ROUTE
     assert events[0]["old_status"] == STATUS_NONE
     assert events[0]["order_id"] == "A1"
+
+
+async def test_update_wraps_email_error_as_update_failed(hass):
+    from homeassistant.helpers.update_coordinator import UpdateFailed
+
+    class _BoomEmail:
+        async def async_fetch_latest(self, hass):
+            raise OSError("imap down")
+
+    coord = WingDeliveryCoordinator(hass, None, _BoomEmail(), _FakeTracking(), 60)
+    with pytest.raises(UpdateFailed):
+        await coord._async_update_data()

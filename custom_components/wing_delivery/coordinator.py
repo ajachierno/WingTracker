@@ -1,12 +1,13 @@
 """Update coordinator for the Wing Delivery integration."""
 from __future__ import annotations
 
+import imaplib
 import logging
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN, EVENT_STATUS_CHANGED, STATUS_NONE
 from .models import EmailOrder, LiveTracking, WingDeliveryData
@@ -59,7 +60,10 @@ class WingDeliveryCoordinator(DataUpdateCoordinator[WingDeliveryData]):
         )
 
     async def _async_update_data(self) -> WingDeliveryData:
-        email = await self._email.async_fetch_latest(self.hass)
+        try:
+            email = await self._email.async_fetch_latest(self.hass)
+        except (imaplib.IMAP4.error, OSError) as err:
+            raise UpdateFailed(f"Error fetching Wing email: {err}") from err
         live = None
         if email is not None and email.tracking_token:
             live = await self._tracking.async_fetch(
