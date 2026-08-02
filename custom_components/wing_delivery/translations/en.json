@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Wing Delivery",
+        "description": "Connect the mailbox that receives your Wing order emails. Nothing is stored outside Home Assistant.",
+        "data": {
+          "host": "IMAP host",
+          "port": "IMAP port",
+          "username": "Username",
+          "password": "Password (app password for Gmail)",
+          "folder": "Mailbox folder",
+          "sender": "Wing sender filter",
+          "scan_interval": "Poll interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not log in to the mailbox. Check host, port, and credentials."
+    },
+    "abort": {
+      "already_configured": "This mailbox is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Wing Delivery options",
+        "data": {
+          "scan_interval": "Poll interval (seconds)"
+        }
+      }
+    }
+  }
+}
