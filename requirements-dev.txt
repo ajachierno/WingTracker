@@ -1,0 +1,6 @@
+homeassistant==2026.7.4
+pytest==9.0.3
+pytest-homeassistant-custom-component==0.13.348
+# Transitive dep of the plugin above; pinned because tests/conftest.py's
+# Windows socket shim depends on pytest-socket's internal API.
+pytest-socket==0.8.0

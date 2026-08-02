@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+# never commit local secrets or captured mail
+secrets.yaml
+*.eml.local
+local_fixtures/
+
+# internal planning docs — never commit to the public integration repo
+design-spec.md
+implementation-plan.md
