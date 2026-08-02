@@ -1,0 +1,6 @@
+{
+  "status": "arriving",
+  "eta_minutes": 6,
+  "location": {"lat": 32.9101, "lng": -96.9500},
+  "updated_at": "2026-08-02T14:35:00+00:00"
+}
