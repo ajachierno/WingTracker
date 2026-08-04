@@ -18,65 +18,95 @@ from ..const import (
 )
 from ..models import EmailOrder
 
-# Ordered most-progressed first so the strongest match wins.
+# Status keywords, most-progressed first so the strongest match wins. Wing only
+# emails an order receipt (no en-route/delivered mails), so in practice the
+# receipt's "reviewing your order" / "thank you for ordering" wins as `ordered`;
+# the later states are kept for robustness and for status fed from live tracking.
+# NOTE: the terminal-state phrases must be specific. A Wing receipt says "your
+# order will be delivered to the location", so a bare "delivered" would falsely
+# match an ordered receipt — require past-tense "has been delivered" instead.
 _STATUS_KEYWORDS: list[tuple[str, str]] = [
-    (STATUS_DELIVERED, "delivered"),
+    (STATUS_DELIVERED, "has been delivered"),
+    (STATUS_DELIVERED, "was delivered"),
+    (STATUS_DELIVERED, "delivered to your"),
     (STATUS_ARRIVING, "arriving"),
     (STATUS_EN_ROUTE, "on the way"),
     (STATUS_EN_ROUTE, "en route"),
     (STATUS_PREPARING, "preparing"),
+    (STATUS_ORDERED, "reviewing your order"),
+    (STATUS_ORDERED, "thank you for ordering"),
     (STATUS_ORDERED, "order received"),
     (STATUS_ORDERED, "order confirmed"),
 ]
 
+# Order id: prefer the body "Order ID: <id>" label, then a "#<id>" in the
+# subject ("Wing Order Receipt #as5HZ4WOmpgo"), then a legacy "Order <ID>", then
+# an "order=" URL param. Ids are mixed-case, so match upper+lower.
+_ORDER_ID_RE = re.compile(r"Order ID:\s*([A-Za-z0-9]+)", re.IGNORECASE)
+_ORDER_HASH_RE = re.compile(r"#([A-Za-z0-9]{6,})")
 _ORDER_RE = re.compile(r"[Oo]rder\s+([A-Z0-9]{4,})")
-_TRACK_URL_RE = re.compile(r"https?://\S*track\S*", re.IGNORECASE)
-_TOKEN_RE = re.compile(r"[?&]token=([A-Za-z0-9_\-]+)")
 _ORDER_PARAM_RE = re.compile(r"[?&]order=([A-Za-z0-9]+)")
+# Tracking link. Wing's real link (https://myorder.wing.com/?trackingId=...)
+# lives ONLY in the HTML part, so the URL is matched against the HTML body first.
+# The delimiter-safe class stops the match at HTML quotes/brackets.
+_TRACK_URL_RE = re.compile(r"https?://[^\s\"'<>]*track[^\s\"'<>]*", re.IGNORECASE)
+# Token param is `trackingId` on real Wing links; `token` kept as a fallback.
+_TOKEN_RE = re.compile(r"[?&](?:trackingId|token)=([A-Za-z0-9_\-]+)", re.IGNORECASE)
 
 
-def _body_text(msg: Message) -> str:
+def _part_text(msg: Message, content_type: str) -> str:
+    """Return the decoded text of the first part matching content_type, or ""."""
     if msg.is_multipart():
         for part in msg.walk():
-            if part.get_content_type() == "text/plain":
+            if part.get_content_type() == content_type:
                 payload = part.get_payload(decode=True)
                 if payload is not None:
                     return payload.decode(
                         part.get_content_charset() or "utf-8", "replace"
                     )
         return ""
-    payload = msg.get_payload(decode=True)
-    if payload is None:
-        return ""
-    return payload.decode(msg.get_content_charset() or "utf-8", "replace")
+    if msg.get_content_type() == content_type:
+        payload = msg.get_payload(decode=True)
+        if payload is not None:
+            return payload.decode(msg.get_content_charset() or "utf-8", "replace")
+    return ""
+
+
+def _extract_order_id(subject: str, plain: str, tracking_url: str | None) -> str | None:
+    text = f"{subject}\n{plain}"
+    if (m := _ORDER_ID_RE.search(text)):
+        return m.group(1)
+    if (m := _ORDER_HASH_RE.search(subject)):
+        return m.group(1)
+    if (m := _ORDER_RE.search(text)):
+        return m.group(1)
+    if tracking_url and (m := _ORDER_PARAM_RE.search(tracking_url)):
+        return m.group(1)
+    return None
 
 
 def parse_email(raw: bytes) -> EmailOrder | None:
     """Parse a raw RFC822 message into an EmailOrder, or None if not a Wing order."""
     msg = email.message_from_bytes(raw)
     subject = msg.get("Subject", "")
-    body = _body_text(msg)
-    haystack = f"{subject}\n{body}".lower()
+    plain = _part_text(msg, "text/plain")
+    html = _part_text(msg, "text/html")
 
-    status = next(
-        (s for s, kw in _STATUS_KEYWORDS if kw in haystack), None
-    )
+    # Status and order id come from the subject/plaintext; the tracking link is
+    # usually HTML-only, so search HTML first and fall back to plaintext.
+    haystack = f"{subject}\n{plain}".lower()
+    status = next((s for s, kw in _STATUS_KEYWORDS if kw in haystack), None)
     if status is None:
         return None
 
-    url_match = _TRACK_URL_RE.search(body)
-
-    order_id = None
-    if (m := _ORDER_RE.search(f"{subject}\n{body}")):
-        order_id = m.group(1)
-
+    url_match = _TRACK_URL_RE.search(html) or _TRACK_URL_RE.search(plain)
     tracking_url = url_match.group(0) if url_match else None
+
+    order_id = _extract_order_id(subject, plain, tracking_url)
+
     tracking_token = None
-    if tracking_url:
-        if (t := _TOKEN_RE.search(tracking_url)):
-            tracking_token = t.group(1)
-        if order_id is None and (o := _ORDER_PARAM_RE.search(tracking_url)):
-            order_id = o.group(1)
+    if tracking_url and (t := _TOKEN_RE.search(tracking_url)):
+        tracking_token = t.group(1)
 
     last_update = None
     if (date_hdr := msg.get("Date")):

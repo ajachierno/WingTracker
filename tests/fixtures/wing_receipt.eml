@@ -1,0 +1,28 @@
+From: Wing <noreply@wing.google.com>
+To: customer@example.com
+Subject: Wing Order Receipt #TESTORD123ABC
+Date: Sun, 02 Aug 2026 19:01:55 +0000
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="WINGBOUNDARY"
+
+--WINGBOUNDARY
+Content-Type: text/plain; charset="UTF-8"
+
+Thank you for ordering with Wing. We are reviewing your order. If
+confirmed, your order will be delivered to the location shown below and you
+can track your order here.
+
+Order Receipt
+
+Order ID: TESTORD123ABC
+
+--WINGBOUNDARY
+Content-Type: text/html; charset="UTF-8"
+
+<!DOCTYPE html><html><body>
+<p>Thank you for ordering with Wing. We are reviewing your order. If confirmed,
+your order will be delivered to the location shown below and you can
+<a href="https://myorder.wing.com/?trackingId=faketrk123ABC">track your order here.</a></p>
+<div style="font-style:italic">Order ID: <span>TESTORD123ABC</span></div>
+</body></html>
+--WINGBOUNDARY--

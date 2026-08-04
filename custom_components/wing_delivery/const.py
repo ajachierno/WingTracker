@@ -10,9 +10,10 @@ CONF_SCAN_INTERVAL = "scan_interval"
 
 DEFAULT_PORT = 993
 DEFAULT_FOLDER = "INBOX"
-# Substring matched against the From header. Editable in the UI; refine once a
-# real Wing order email is available.
-DEFAULT_SENDER = "wing.com"
+# Substring matched against the From header. Wing order receipts are sent from
+# noreply@wing.google.com (marketing mail comes from wing-noreply@google.com and
+# is excluded by this filter). Editable in the UI.
+DEFAULT_SENDER = "wing.google.com"
 DEFAULT_SCAN_INTERVAL = 120  # seconds
 
 STATUS_NONE = "none"

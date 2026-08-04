@@ -1,11 +1,11 @@
 from pathlib import Path
 
 from custom_components.wing_delivery.providers.email_provider import parse_email
-from custom_components.wing_delivery.const import STATUS_EN_ROUTE
+from custom_components.wing_delivery.const import STATUS_EN_ROUTE, STATUS_ORDERED
 
-FIXTURE = (
-    Path(__file__).resolve().parent / "fixtures" / "wing_order_en_route.eml"
-)
+FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
+FIXTURE = FIXTURE_DIR / "wing_order_en_route.eml"
+RECEIPT_FIXTURE = FIXTURE_DIR / "wing_receipt.eml"
 
 
 def test_parse_email_extracts_order_and_token():
@@ -29,3 +29,14 @@ def test_parse_email_returns_none_when_no_status_keyword():
         b"Thanks. Track: https://wing.com/track?order=Z9&token=trk_z9\r\n"
     )
     assert parse_email(raw) is None
+
+
+def test_parse_email_real_wing_receipt_format():
+    """Matches the real Wing receipt: sender wing.google.com, HTML-only tracking
+    link with a trackingId param, mixed-case order id, "reviewing" wording."""
+    order = parse_email(RECEIPT_FIXTURE.read_bytes())
+    assert order is not None
+    assert order.status == STATUS_ORDERED
+    assert order.order_id == "TESTORD123ABC"
+    assert order.tracking_token == "faketrk123ABC"
+    assert order.tracking_url == "https://myorder.wing.com/?trackingId=faketrk123ABC"

@@ -24,7 +24,7 @@ emails:
 - IMAP host and port (Gmail: `imap.gmail.com`, `993`)
 - Username and password (Gmail requires an app password)
 - Mailbox folder (default `INBOX`)
-- Wing sender filter (default `wing.com`)
+- Wing sender filter (default `wing.google.com` — Wing order receipts come from `noreply@wing.google.com`)
 - Poll interval in seconds
 
 Nothing is stored outside Home Assistant.
