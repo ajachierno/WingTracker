@@ -7,12 +7,11 @@ email plus a public web API key baked into Wing's web client:
     GET https://content-wingdelivery.googleapis.com/v2alpha/orders:track
           ?orderTrackingReferenceTrackingId=<trackingId>&key=<publicKey>
 
-`async_fetch` is wired to call that endpoint. `parse_tracking`'s field mapping
-is PROVISIONAL: the exact response schema (the JSON keys for status, ETA, and
-drone lat/lng) must be confirmed against a live, in-flight order — a delivered
-order returns a terminal state without live ETA/position. Until confirmed,
-parse_tracking reads defensively and returns None for any field it can't find,
-so it never fabricates data. See projects/ha-wing-delivery/phase-2-notes.md.
+`async_fetch` calls that endpoint and `parse_tracking` maps the response
+(confirmed against a live order): package state -> status, the estimated
+delivery time -> minutes remaining, and the aircraft telemetry -> drone
+position. It reads defensively and returns None for any field it can't find,
+so it never fabricates data.
 """
 from __future__ import annotations
 

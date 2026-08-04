@@ -3,10 +3,10 @@
   "name": "Wing Delivery",
   "codeowners": ["@ajachierno"],
   "config_flow": true,
-  "documentation": "https://github.com/ajachierno/ha-wing-delivery",
+  "documentation": "https://github.com/ajachierno/WingTracker",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/ajachierno/ha-wing-delivery/issues",
+  "issue_tracker": "https://github.com/ajachierno/WingTracker/issues",
   "requirements": [],
   "version": "0.1.0"
 }
