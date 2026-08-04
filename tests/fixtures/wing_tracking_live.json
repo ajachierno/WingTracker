@@ -1,6 +1,30 @@
 {
-  "status": "arriving",
-  "eta_minutes": 6,
-  "location": {"lat": 32.9101, "lng": -96.9500},
-  "updated_at": "2026-08-02T14:35:00+00:00"
+  "order": {
+    "name": "orders/TESTORD123ABC",
+    "orderState": "PACKAGES_PENDING_LOAD",
+    "packages": [
+      {
+        "packageState": "IN_TRANSIT",
+        "estimatedDeliveryTime": "2026-08-04T23:04:51Z",
+        "packageId": "9999001"
+      }
+    ],
+    "orderTrackingId": "faketrk123ABC",
+    "facility": "organizations/testorg/facilities/testfac"
+  },
+  "packageMetrics": {
+    "9999001": {
+      "packageDeliveryEstimateTime": "2026-08-04T23:04:51Z",
+      "aircraftTelemetry": {
+        "aircraftLocation": {
+          "latitude": 30.111111,
+          "longitude": -95.222222
+        }
+      },
+      "estimatedPackageDeliveryTime": "2026-08-04T23:04:51Z"
+    }
+  },
+  "originLatlng": {"latitude": 30.2, "longitude": -95.3},
+  "originLabel": "Test Store",
+  "destinationLatlng": {"latitude": 30.0, "longitude": -95.1}
 }

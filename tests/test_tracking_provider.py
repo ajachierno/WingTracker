@@ -6,20 +6,38 @@ from custom_components.wing_delivery.providers.tracking_provider import (
     TrackingProvider,
     TRACK_API_URL,
 )
+from custom_components.wing_delivery.const import STATUS_DELIVERED, STATUS_EN_ROUTE
 
 FIXTURE = (
     Path(__file__).resolve().parent / "fixtures" / "wing_tracking_live.json"
 )
 
 
-def test_parse_tracking_maps_fields():
+def test_parse_tracking_maps_live_fields(freezer):
+    # Freeze "now" so minutes-until-delivery is deterministic.
+    # Fixture ETA is 2026-08-04T23:04:51Z -> 4m51s -> 5 minutes.
+    freezer.move_to("2026-08-04T23:00:00+00:00")
     payload = json.loads(FIXTURE.read_text())
     live = parse_tracking(payload)
-    assert live.status == "arriving"
-    assert live.eta_minutes == 6
-    assert live.latitude == 32.9101
-    assert live.longitude == -96.9500
+    assert live.status == STATUS_EN_ROUTE  # packageState IN_TRANSIT
+    assert live.eta_minutes == 5
+    assert live.latitude == 30.111111
+    assert live.longitude == -95.222222
     assert live.updated_at is not None
+
+
+def test_parse_tracking_delivered_state():
+    payload = {
+        "order": {
+            "orderState": "ALL_PACKAGES_COMPLETE",
+            "packages": [{"packageState": "DELIVERED", "packageId": "p1"}],
+        },
+        "packageMetrics": {"p1": {}},
+    }
+    live = parse_tracking(payload)
+    assert live.status == STATUS_DELIVERED
+    assert live.eta_minutes is None
+    assert live.latitude is None
 
 
 def test_parse_tracking_tolerates_missing_fields():
@@ -67,7 +85,7 @@ async def test_async_fetch_calls_endpoint_and_parses():
     )
 
     assert result is not None
-    assert result.status == "arriving"
+    assert result.status == STATUS_EN_ROUTE
     # Called Wing's real endpoint with the trackingId + key as query params.
     url, params = session.calls[0]
     assert url == TRACK_API_URL
@@ -82,10 +100,9 @@ async def test_async_fetch_returns_none_on_error_status():
 
 
 async def test_async_fetch_returns_none_without_token():
-    session = _FakeSession(200, {"status": "arriving"})
+    session = _FakeSession(200, {})
     provider = TrackingProvider(session)
     assert await provider.async_fetch("u", None) is None
-    # No HTTP call attempted when there's no trackingId.
     assert session.calls == []
 
 
