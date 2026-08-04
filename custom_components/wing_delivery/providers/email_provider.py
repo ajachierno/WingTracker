@@ -40,7 +40,7 @@ _STATUS_KEYWORDS: list[tuple[str, str]] = [
 ]
 
 # Order id: prefer the body "Order ID: <id>" label, then a "#<id>" in the
-# subject ("Wing Order Receipt #as5HZ4WOmpgo"), then a legacy "Order <ID>", then
+# subject ("Wing Order Receipt #Ab12Cd34Ef56"), then a legacy "Order <ID>", then
 # an "order=" URL param. Ids are mixed-case, so match upper+lower.
 _ORDER_ID_RE = re.compile(r"Order ID:\s*([A-Za-z0-9]+)", re.IGNORECASE)
 _ORDER_HASH_RE = re.compile(r"#([A-Za-z0-9]{6,})")
