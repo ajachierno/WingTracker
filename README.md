@@ -36,27 +36,47 @@ Nothing is stored outside Home Assistant.
 - `binary_sensor.wing_delivery_active` - a delivery is in progress
 - `device_tracker.wing_drone` - drone position on the map (live deliveries)
 
+The `sensor.wing_delivery_status` entity also exposes attributes: `order_id`,
+`items` (the ordered item names, parsed from the receipt email), `tracking_url`,
+and `last_update`. In practice Wing goes straight from `en_route` to
+`delivered`, so the `arriving` state is rarely (if ever) emitted.
+
 ## Automations
 
 Listen for the `wing_delivery_status_changed` event:
 
 ```yaml
 automation:
-  - alias: Announce drone arriving
+  - alias: Announce Wing delivery
     trigger:
       - platform: event
         event_type: wing_delivery_status_changed
         event_data:
-          new_status: arriving
+          new_status: delivered
     action:
       - service: tts.google_translate_say
         data:
           entity_id: media_player.kitchen
-          message: "Your Wing drone is arriving."
+          message: "Your Wing order has been delivered."
 ```
 
-## Status
+## How it works
 
-ETA and drone position require the live tracking layer, finalized once real
-delivery traffic is captured. Until then the integration reports status from
-your order emails.
+Order status and the item list come from your Wing receipt emails. Live ETA and
+the drone's position come from Wing's order-tracking service (the same feed the
+`myorder.wing.com` page uses), reached with the tracking id from the email — no
+Wing login required.
+
+## Buy me a coffee
+
+Did you find this helpful? Consider supporting additional development:
+
+<a href="https://www.buymeacoffee.com/ajachiernoo" target="_blank">
+  <img src="brand/bmc_button.png" alt="Buy me a coffee" height="50">
+</a>
+
+<br><br>
+
+<a href="https://www.buymeacoffee.com/ajachiernoo" target="_blank">
+  <img src="brand/buymeacoffee_qr.png" alt="Buy me a coffee QR code" width="200">
+</a>
