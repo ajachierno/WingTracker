@@ -1,7 +1,7 @@
 """Normalized data models for the Wing Delivery integration."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from .const import STATUS_NONE
@@ -16,6 +16,7 @@ class EmailOrder:
     tracking_url: str | None
     tracking_token: str | None
     last_update: datetime | None
+    items: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -40,6 +41,7 @@ class WingDeliveryData:
     longitude: float | None
     tracking_url: str | None
     last_update: datetime | None
+    items: list[str] = field(default_factory=list)
 
     @classmethod
     def empty(cls) -> "WingDeliveryData":

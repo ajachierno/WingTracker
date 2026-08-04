@@ -85,6 +85,26 @@ def _extract_order_id(subject: str, plain: str, tracking_url: str | None) -> str
     return None
 
 
+def _extract_items(plain: str) -> list[str]:
+    """Item names from a Wing receipt: the line after each 'PKGID #<id>'.
+
+    Receipt layout is: `PKGID #<id>`, a blank line, the item description, a
+    blank line, then the `$price`. Best-effort; unknown layouts yield [].
+    """
+    lines = [ln.strip() for ln in plain.splitlines()]
+    items: list[str] = []
+    for i, line in enumerate(lines):
+        if re.match(r"PKGID\s*#", line, re.IGNORECASE):
+            for nxt in lines[i + 1:]:
+                if not nxt:
+                    continue
+                if nxt.startswith("$"):
+                    break  # hit the price with no description
+                items.append(nxt)
+                break
+    return items
+
+
 def parse_email(raw: bytes) -> EmailOrder | None:
     """Parse a raw RFC822 message into an EmailOrder, or None if not a Wing order."""
     msg = email.message_from_bytes(raw)
@@ -121,6 +141,7 @@ def parse_email(raw: bytes) -> EmailOrder | None:
         tracking_url=tracking_url,
         tracking_token=tracking_token,
         last_update=last_update,
+        items=_extract_items(plain),
     )
 
 

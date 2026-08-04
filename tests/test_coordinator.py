@@ -14,12 +14,14 @@ def test_merge_email_only():
     email = EmailOrder(
         order_id="A1", status=STATUS_EN_ROUTE,
         tracking_url="u", tracking_token="t", last_update=None,
+        items=["Lasagna"],
     )
     data = WingDeliveryCoordinator.merge(email, None)
     assert data.status == STATUS_EN_ROUTE
     assert data.order_id == "A1"
     assert data.eta_minutes is None
     assert data.latitude is None
+    assert data.items == ["Lasagna"]
 
 
 def test_merge_live_overrides_status_and_adds_position():

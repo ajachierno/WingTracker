@@ -57,6 +57,7 @@ class WingDeliveryCoordinator(DataUpdateCoordinator[WingDeliveryData]):
             longitude=live.longitude if live else None,
             tracking_url=email.tracking_url,
             last_update=email.last_update,
+            items=email.items,
         )
 
     async def _async_update_data(self) -> WingDeliveryData:

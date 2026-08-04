@@ -40,3 +40,4 @@ def test_parse_email_real_wing_receipt_format():
     assert order.order_id == "TESTORD123ABC"
     assert order.tracking_token == "faketrk123ABC"
     assert order.tracking_url == "https://myorder.wing.com/?trackingId=faketrk123ABC"
+    assert order.items == ["Test Snack Item, Family Pack"]

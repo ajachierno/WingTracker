@@ -53,6 +53,7 @@ class WingStatusSensor(_BaseEntity, SensorEntity):
         data = self.coordinator.data
         return {
             "order_id": data.order_id,
+            "items": data.items,
             "tracking_url": data.tracking_url,
             "last_update": data.last_update,
         }

@@ -13,6 +13,7 @@ def test_empty_data_has_none_status():
     assert data.eta_minutes is None
     assert data.latitude is None
     assert data.longitude is None
+    assert data.items == []
 
 
 def test_dataclasses_construct():

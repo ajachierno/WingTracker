@@ -19,6 +19,7 @@ ENTRY_DATA = {
 LIVE_DATA = WingDeliveryData(
     status=STATUS_ARRIVING, order_id="A1", eta_minutes=6,
     latitude=32.9, longitude=-96.9, tracking_url="u", last_update=None,
+    items=["Test Snack Item"],
 )
 
 
@@ -40,6 +41,7 @@ async def test_status_sensor_state_and_attributes(hass):
     assert state is not None
     assert state.state == STATUS_ARRIVING
     assert state.attributes["order_id"] == "A1"
+    assert state.attributes["items"] == ["Test Snack Item"]
 
 
 async def test_eta_sensor_value(hass):
