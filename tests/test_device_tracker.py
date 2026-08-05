@@ -38,6 +38,8 @@ async def test_tracker_reports_coordinates(hass):
     assert state is not None
     assert state.attributes["latitude"] == 32.9101
     assert state.attributes["longitude"] == -96.95
+    # Custom map marker: the drone uses the integration's icon, not initials.
+    assert state.attributes["entity_picture"].endswith("brand/icon.png")
 
 
 async def test_tracker_unavailable_without_position(hass):

@@ -10,6 +10,14 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
 from .coordinator import WingDeliveryCoordinator
 
+# Map markers render an image (entity_picture) or fall back to the name's
+# initials ("WD"). Point at the integration's own icon so the marker shows the
+# Wing icon. Served publicly by GitHub from this repo.
+_MARKER_ICON = (
+    "https://raw.githubusercontent.com/ajachierno/WingTracker/main/"
+    "custom_components/wing_delivery/brand/icon.png"
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -25,6 +33,7 @@ class WingDroneTracker(
 ):
     _attr_name = "Wing Drone"
     _attr_icon = "mdi:quadcopter"
+    _attr_entity_picture = _MARKER_ICON
 
     def __init__(self, coordinator, entry_id: str) -> None:
         super().__init__(coordinator)
