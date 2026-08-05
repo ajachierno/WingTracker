@@ -29,6 +29,23 @@ emails:
 
 Nothing is stored outside Home Assistant.
 
+### Gmail app password
+
+If your Gmail account has 2-Step Verification enabled, Gmail blocks your normal
+password over IMAP and you must use an **app password** (otherwise setup fails
+with "Application-specific password required"):
+
+1. Go to <https://myaccount.google.com/apppasswords> (this page only works when
+   2-Step Verification is on for your account).
+2. Enter a name such as `Home Assistant Wing` and click **Create**.
+3. Google shows a 16-character password in four groups (for example
+   `abcd efgh ijkl mnop`). Copy it.
+4. In the integration, set the **username** to your full email address and the
+   **password** to this app password (the spaces are optional).
+
+Other IMAP providers work too — use their host, port, and a normal or
+provider-specific password as appropriate.
+
 ## Entities
 
 - `sensor.wing_delivery_status` - ordered / preparing / en_route / arriving / delivered
