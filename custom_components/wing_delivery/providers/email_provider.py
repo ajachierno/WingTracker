@@ -47,9 +47,13 @@ _ORDER_HASH_RE = re.compile(r"#([A-Za-z0-9]{6,})")
 _ORDER_RE = re.compile(r"[Oo]rder\s+([A-Z0-9]{4,})")
 _ORDER_PARAM_RE = re.compile(r"[?&]order=([A-Za-z0-9]+)")
 # Tracking link. Wing's real link (https://myorder.wing.com/?trackingId=...)
-# lives ONLY in the HTML part, so the URL is matched against the HTML body first.
+# lives ONLY in the HTML part. Match on the trackingId param specifically: a
+# looser "contains track" match wrongly grabs asset URLs — notably the email
+# logo at .../order_tracking/images/WingLogoEmail.png, which appears first.
 # The delimiter-safe class stops the match at HTML quotes/brackets.
-_TRACK_URL_RE = re.compile(r"https?://[^\s\"'<>]*track[^\s\"'<>]*", re.IGNORECASE)
+_TRACK_URL_RE = re.compile(
+    r"https?://[^\s\"'<>]*trackingId=[^\s\"'<>]+", re.IGNORECASE
+)
 # Token param is `trackingId` on real Wing links; `token` kept as a fallback.
 _TOKEN_RE = re.compile(r"[?&](?:trackingId|token)=([A-Za-z0-9_\-]+)", re.IGNORECASE)
 

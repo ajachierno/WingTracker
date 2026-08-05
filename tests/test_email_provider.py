@@ -14,7 +14,7 @@ def test_parse_email_extracts_order_and_token():
     assert order.order_id == "A1B2C3"
     assert order.status == STATUS_EN_ROUTE
     assert order.tracking_token == "trk_abc123"
-    assert order.tracking_url.startswith("https://wing.com/track")
+    assert order.tracking_url.startswith("https://myorder.wing.com")
 
 
 def test_parse_email_returns_none_for_unrelated_mail():

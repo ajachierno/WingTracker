@@ -26,9 +26,11 @@ Order ID: TESTORD123ABC
 Content-Type: text/html; charset="UTF-8"
 
 <!DOCTYPE html><html><body>
+<img src="https://www.gstatic.com/wing/order_tracking/images/WingLogoEmail.png" alt="Wing Logo">
 <p>Thank you for ordering with Wing. We are reviewing your order. If confirmed,
 your order will be delivered to the location shown below and you can
 <a href="https://myorder.wing.com/?trackingId=faketrk123ABC">track your order here.</a></p>
 <div style="font-style:italic">Order ID: <span>TESTORD123ABC</span></div>
+<a href="https://support.google.com/wingdelivery?utm_source=emailreceipt">help center</a>
 </body></html>
 --WINGBOUNDARY--
