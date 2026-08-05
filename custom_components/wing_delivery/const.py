@@ -6,7 +6,9 @@ DOMAIN = "wing_delivery"
 # Config keys (host/port/username/password reuse homeassistant.const in config_flow)
 CONF_FOLDER = "folder"
 CONF_SENDER = "sender"
-CONF_SCAN_INTERVAL = "scan_interval"
+CONF_SCAN_INTERVAL = "scan_interval"  # legacy single interval (read for back-compat)
+CONF_EMAIL_INTERVAL = "email_scan_interval"
+CONF_LIVE_INTERVAL = "live_scan_interval"
 
 DEFAULT_PORT = 993
 DEFAULT_FOLDER = "INBOX"
@@ -14,7 +16,11 @@ DEFAULT_FOLDER = "INBOX"
 # noreply@wing.google.com (marketing mail comes from wing-noreply@google.com and
 # is excluded by this filter). Editable in the UI.
 DEFAULT_SENDER = "wing.google.com"
-DEFAULT_SCAN_INTERVAL = 120  # seconds
+# How often to check the mailbox for new/updated orders.
+DEFAULT_EMAIL_INTERVAL = 120  # seconds
+# How often to refresh live tracking (ETA + drone position) while a delivery is
+# active. Lower = smoother map, but the tracking endpoint is hit more often.
+DEFAULT_LIVE_INTERVAL = 20  # seconds
 
 STATUS_NONE = "none"
 STATUS_ORDERED = "ordered"

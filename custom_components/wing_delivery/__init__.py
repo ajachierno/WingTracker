@@ -12,10 +12,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
+    CONF_EMAIL_INTERVAL,
     CONF_FOLDER,
+    CONF_LIVE_INTERVAL,
     CONF_SCAN_INTERVAL,
     CONF_SENDER,
-    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_EMAIL_INTERVAL,
+    DEFAULT_LIVE_INTERVAL,
     DOMAIN,
     PLATFORMS,
 )
@@ -35,12 +38,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         sender=entry.data[CONF_SENDER],
     )
     tracking_provider = TrackingProvider(async_get_clientsession(hass))
-    scan_interval = entry.options.get(
-        CONF_SCAN_INTERVAL,
-        entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+    # email interval falls back to the legacy single "scan_interval" for entries
+    # created before the split; options override data.
+    email_interval = entry.options.get(
+        CONF_EMAIL_INTERVAL,
+        entry.data.get(
+            CONF_EMAIL_INTERVAL,
+            entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_EMAIL_INTERVAL),
+        ),
+    )
+    live_interval = entry.options.get(
+        CONF_LIVE_INTERVAL,
+        entry.data.get(CONF_LIVE_INTERVAL, DEFAULT_LIVE_INTERVAL),
     )
     coordinator = WingDeliveryCoordinator(
-        hass, entry, email_provider, tracking_provider, scan_interval
+        hass, entry, email_provider, tracking_provider, email_interval, live_interval
     )
     await coordinator.async_config_entry_first_refresh()
 

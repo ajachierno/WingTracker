@@ -3,13 +3,14 @@ from __future__ import annotations
 
 import imaplib
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, EVENT_STATUS_CHANGED, STATUS_NONE
+from .const import ACTIVE_STATUSES, DOMAIN, EVENT_STATUS_CHANGED, STATUS_NONE
 from .models import EmailOrder, LiveTracking, WingDeliveryData
 from .providers.email_provider import EmailProvider
 from .providers.tracking_provider import TrackingProvider
@@ -18,7 +19,16 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class WingDeliveryCoordinator(DataUpdateCoordinator[WingDeliveryData]):
-    """Poll the email and tracking providers and merge their results."""
+    """Poll email (for orders) and live tracking (for an active delivery).
+
+    Two independent cadences:
+    - the mailbox is checked every ``email_interval`` seconds;
+    - while a delivery is active the coordinator ticks every ``live_interval``
+      seconds to refresh the ETA and drone position.
+
+    On the fast (live) ticks the email check is still throttled to
+    ``email_interval``, so Gmail isn't hit on every fast tick.
+    """
 
     def __init__(
         self,
@@ -26,18 +36,23 @@ class WingDeliveryCoordinator(DataUpdateCoordinator[WingDeliveryData]):
         config_entry: ConfigEntry | None,
         email_provider: EmailProvider,
         tracking_provider: TrackingProvider,
-        scan_interval: int,
+        email_interval: int,
+        live_interval: int,
     ) -> None:
         super().__init__(
             hass,
             _LOGGER,
             config_entry=config_entry,
             name=DOMAIN,
-            update_interval=timedelta(seconds=scan_interval),
+            update_interval=timedelta(seconds=email_interval),
         )
         self._email = email_provider
         self._tracking = tracking_provider
+        self._email_interval = email_interval
+        self._live_interval = live_interval
         self._last_status = STATUS_NONE
+        self._cached_email: EmailOrder | None = None
+        self._last_email_fetch: datetime | None = None
 
     @staticmethod
     def merge(
@@ -60,11 +75,29 @@ class WingDeliveryCoordinator(DataUpdateCoordinator[WingDeliveryData]):
             items=email.items,
         )
 
+    async def _async_fetch_email(self) -> EmailOrder | None:
+        """Return the latest order email, re-fetching at most every email interval.
+
+        Between fetches the previous result is reused, so fast live-tracking ticks
+        don't hit the mailbox.
+        """
+        now = dt_util.utcnow()
+        due = (
+            self._last_email_fetch is None
+            or (now - self._last_email_fetch).total_seconds()
+            >= self._email_interval
+        )
+        if due:
+            try:
+                self._cached_email = await self._email.async_fetch_latest(self.hass)
+            except (imaplib.IMAP4.error, OSError) as err:
+                raise UpdateFailed(f"Error fetching Wing email: {err}") from err
+            self._last_email_fetch = now
+        return self._cached_email
+
     async def _async_update_data(self) -> WingDeliveryData:
-        try:
-            email = await self._email.async_fetch_latest(self.hass)
-        except (imaplib.IMAP4.error, OSError) as err:
-            raise UpdateFailed(f"Error fetching Wing email: {err}") from err
+        email = await self._async_fetch_email()
+
         live = None
         if email is not None and email.tracking_token:
             live = await self._tracking.async_fetch(
@@ -82,4 +115,10 @@ class WingDeliveryCoordinator(DataUpdateCoordinator[WingDeliveryData]):
                 },
             )
             self._last_status = data.status
+
+        # Tick fast while a delivery is active, slow when idle.
+        active = data.status in ACTIVE_STATUSES
+        self.update_interval = timedelta(
+            seconds=self._live_interval if active else self._email_interval
+        )
         return data

@@ -20,12 +20,15 @@ from homeassistant.const import (
 from homeassistant.core import callback
 
 from .const import (
+    CONF_EMAIL_INTERVAL,
     CONF_FOLDER,
+    CONF_LIVE_INTERVAL,
     CONF_SCAN_INTERVAL,
     CONF_SENDER,
+    DEFAULT_EMAIL_INTERVAL,
     DEFAULT_FOLDER,
+    DEFAULT_LIVE_INTERVAL,
     DEFAULT_PORT,
-    DEFAULT_SCAN_INTERVAL,
     DEFAULT_SENDER,
     DOMAIN,
 )
@@ -42,7 +45,10 @@ def _user_schema() -> vol.Schema:
             vol.Required(CONF_FOLDER, default=DEFAULT_FOLDER): str,
             vol.Required(CONF_SENDER, default=DEFAULT_SENDER): str,
             vol.Required(
-                CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
+                CONF_EMAIL_INTERVAL, default=DEFAULT_EMAIL_INTERVAL
+            ): int,
+            vol.Required(
+                CONF_LIVE_INTERVAL, default=DEFAULT_LIVE_INTERVAL
             ): int,
         }
     )
@@ -99,13 +105,28 @@ class WingDeliveryOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
-        current = self._entry.options.get(
-            CONF_SCAN_INTERVAL,
-            self._entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        data = self._entry.data
+        opts = self._entry.options
+        email_default = opts.get(
+            CONF_EMAIL_INTERVAL,
+            data.get(
+                CONF_EMAIL_INTERVAL,
+                data.get(CONF_SCAN_INTERVAL, DEFAULT_EMAIL_INTERVAL),
+            ),
+        )
+        live_default = opts.get(
+            CONF_LIVE_INTERVAL, data.get(CONF_LIVE_INTERVAL, DEFAULT_LIVE_INTERVAL)
         )
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
-                {vol.Required(CONF_SCAN_INTERVAL, default=current): int}
+                {
+                    vol.Required(
+                        CONF_EMAIL_INTERVAL, default=email_default
+                    ): int,
+                    vol.Required(
+                        CONF_LIVE_INTERVAL, default=live_default
+                    ): int,
+                }
             ),
         )

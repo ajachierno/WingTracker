@@ -25,9 +25,20 @@ emails:
 - Username and password (Gmail requires an app password)
 - Mailbox folder (default `INBOX`)
 - Wing sender filter (default `wing.google.com` — Wing order receipts come from `noreply@wing.google.com`)
-- Poll interval in seconds
+- New-order email check interval (default `120` seconds) — how often the mailbox is checked for a new order
+- Live tracking update interval (default `20` seconds) — how often the ETA and drone position refresh while a delivery is in the air
 
 Nothing is stored outside Home Assistant.
+
+### Polling
+
+The two intervals are independent. When nothing is being delivered, the
+integration just checks your mailbox every *email* interval. Once an order is
+active, it speeds up to the *live* interval to keep the ETA and the drone's map
+position current — but your mailbox is still only checked at the (slower) email
+interval, so a fast live interval doesn't hammer Gmail. Set the email interval
+high (checking for orders is infrequent) and the live interval low (say 15–30s)
+for a smooth-moving map without extra email logins.
 
 ### Gmail app password
 

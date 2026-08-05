@@ -6,7 +6,7 @@ from homeassistant.const import (
 )
 
 from custom_components.wing_delivery.const import (
-    DOMAIN, CONF_FOLDER, CONF_SENDER, CONF_SCAN_INTERVAL,
+    DOMAIN, CONF_FOLDER, CONF_SENDER, CONF_EMAIL_INTERVAL, CONF_LIVE_INTERVAL,
 )
 
 USER_INPUT = {
@@ -16,7 +16,8 @@ USER_INPUT = {
     CONF_PASSWORD: "app-password",
     CONF_FOLDER: "INBOX",
     CONF_SENDER: "wing.com",
-    CONF_SCAN_INTERVAL: 120,
+    CONF_EMAIL_INTERVAL: 120,
+    CONF_LIVE_INTERVAL: 20,
 }
 
 

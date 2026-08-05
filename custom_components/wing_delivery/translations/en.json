@@ -11,12 +11,17 @@
           "password": "Password (app password for Gmail)",
           "folder": "Mailbox folder",
           "sender": "Wing sender filter",
-          "scan_interval": "Poll interval (seconds)"
+          "email_scan_interval": "New-order email check interval (seconds)",
+          "live_scan_interval": "Live tracking update interval (seconds)"
+        },
+        "data_description": {
+          "email_scan_interval": "How often to check your mailbox for a new Wing order. Slower is fine — orders are infrequent (default 120).",
+          "live_scan_interval": "How often to refresh the ETA and the drone's map position while a delivery is in the air. Lower is smoother; your mailbox is still only checked at the interval above, so this doesn't hit email more often (default 20)."
         }
       }
     },
     "error": {
-      "cannot_connect": "Could not log in to the mailbox. Check host, port, and credentials."
+      "cannot_connect": "Could not log in to the mailbox. Check host, port, and credentials. If you use Gmail with 2-Step Verification, you must use an app password (myaccount.google.com/apppasswords), not your normal password."
     },
     "abort": {
       "already_configured": "This mailbox is already configured."
@@ -27,7 +32,12 @@
       "init": {
         "title": "Wing Delivery options",
         "data": {
-          "scan_interval": "Poll interval (seconds)"
+          "email_scan_interval": "New-order email check interval (seconds)",
+          "live_scan_interval": "Live tracking update interval (seconds)"
+        },
+        "data_description": {
+          "email_scan_interval": "How often to check your mailbox for a new Wing order.",
+          "live_scan_interval": "How often to refresh the ETA and drone map position during an active delivery."
         }
       }
     }
