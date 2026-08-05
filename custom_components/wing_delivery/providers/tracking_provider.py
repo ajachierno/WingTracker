@@ -38,6 +38,10 @@ TRACK_API_URL = "https://content-wingdelivery.googleapis.com/v2alpha/orders:trac
 # secret — the same key drives the app's Maps calls). Rotatable: overridable via
 # the constructor if Wing changes it.
 DEFAULT_API_KEY = "AIzaSyCHzeCcjPYHmcegQss2V94g2YNlvnEsLc4"
+# The key is HTTP-referrer-restricted to the tracking site: without this header
+# Google returns 403 API_KEY_HTTP_REFERRER_BLOCKED. A browser sends it for free;
+# our request must set it explicitly.
+TRACK_REFERER = "https://myorder.wing.com/"
 REQUEST_TIMEOUT = ClientTimeout(total=15)
 
 
@@ -156,7 +160,10 @@ class TrackingProvider:
         }
         try:
             async with self._session.get(
-                TRACK_API_URL, params=params, timeout=REQUEST_TIMEOUT
+                TRACK_API_URL,
+                params=params,
+                headers={"Referer": TRACK_REFERER},
+                timeout=REQUEST_TIMEOUT,
             ) as resp:
                 if resp.status != 200:
                     _LOGGER.debug(

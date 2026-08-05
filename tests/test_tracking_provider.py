@@ -5,6 +5,7 @@ from custom_components.wing_delivery.providers.tracking_provider import (
     parse_tracking,
     TrackingProvider,
     TRACK_API_URL,
+    TRACK_REFERER,
 )
 from custom_components.wing_delivery.const import STATUS_DELIVERED, STATUS_EN_ROUTE
 
@@ -70,8 +71,8 @@ class _FakeSession:
         self._payload = payload
         self.calls: list[tuple[str, dict]] = []
 
-    def get(self, url, params=None, timeout=None):
-        self.calls.append((url, params or {}))
+    def get(self, url, params=None, headers=None, timeout=None):
+        self.calls.append((url, params or {}, headers or {}))
         return _FakeResponse(self._status, self._payload)
 
 
@@ -86,11 +87,13 @@ async def test_async_fetch_calls_endpoint_and_parses():
 
     assert result is not None
     assert result.status == STATUS_EN_ROUTE
-    # Called Wing's real endpoint with the trackingId + key as query params.
-    url, params = session.calls[0]
+    # Called Wing's real endpoint with the trackingId + key as query params,
+    # and the referrer header the (referrer-restricted) API key requires.
+    url, params, headers = session.calls[0]
     assert url == TRACK_API_URL
     assert params["orderTrackingReferenceTrackingId"] == "abc123"
     assert params["key"] == "TESTKEY"
+    assert headers["Referer"] == TRACK_REFERER
 
 
 async def test_async_fetch_returns_none_on_error_status():
