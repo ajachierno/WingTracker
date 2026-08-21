@@ -6,6 +6,7 @@ from custom_components.wing_delivery.const import (
     EVENT_STATUS_CHANGED,
     STATUS_EN_ROUTE,
     STATUS_ARRIVING,
+    STATUS_DELIVERED,
     STATUS_NONE,
 )
 
@@ -147,3 +148,89 @@ async def test_adaptive_polling_speeds_up_and_throttles_email(hass, freezer):
     await hass.async_block_till_done()
     assert email.calls == 2
     assert tracking.calls == 3
+
+
+async def test_delivered_clears_after_grace_then_dormant(hass, freezer):
+    from datetime import timedelta
+
+    freezer.move_to("2026-08-21T12:00:00+00:00")
+    order = EmailOrder(
+        order_id="A1", status="ordered",
+        tracking_url="u", tracking_token="t", last_update=None,
+    )
+    email = _CountingEmail(order)
+    tracking = _CountingTracking(LiveTracking(
+        status=STATUS_DELIVERED, eta_minutes=0, latitude=1.0, longitude=2.0,
+        updated_at=None,
+    ))
+    coord = WingDeliveryCoordinator(
+        hass, None, email, tracking, email_interval=120, live_interval=20
+    )
+
+    # First cycle: tracking says delivered -> show it, grace poll cadence.
+    await coord.async_refresh()
+    await hass.async_block_till_done()
+    assert coord.data.status == STATUS_DELIVERED
+    assert tracking.calls == 1
+    assert coord.update_interval == timedelta(seconds=60)
+
+    # Within grace: still delivered, and tracking is NOT polled again.
+    freezer.move_to("2026-08-21T12:02:00+00:00")
+    await coord.async_refresh()
+    await hass.async_block_till_done()
+    assert coord.data.status == STATUS_DELIVERED
+    assert tracking.calls == 1
+
+    # After the 5-minute grace: entities clear.
+    freezer.move_to("2026-08-21T12:06:00+00:00")
+    await coord.async_refresh()
+    await hass.async_block_till_done()
+    assert coord.data.status == STATUS_NONE
+    assert coord.data.order_id is None
+
+    # Dormant: the lingering receipt neither re-polls tracking nor re-activates.
+    calls_after_clear = tracking.calls
+    freezer.move_to("2026-08-21T12:10:00+00:00")
+    await coord.async_refresh()
+    await hass.async_block_till_done()
+    assert coord.data.status == STATUS_NONE
+    assert tracking.calls == calls_after_clear
+
+
+async def test_transient_email_error_keeps_last_state(hass, freezer):
+    freezer.move_to("2026-08-21T12:00:00+00:00")
+    order = EmailOrder(
+        order_id="A1", status=STATUS_EN_ROUTE,
+        tracking_url="u", tracking_token="t", last_update=None,
+    )
+
+    class _FlakyEmail:
+        def __init__(self):
+            self.fail = False
+
+        async def async_fetch_latest(self, hass):
+            if self.fail:
+                raise OSError("imap blip")
+            return order
+
+    email = _FlakyEmail()
+    live = LiveTracking(
+        status=STATUS_EN_ROUTE, eta_minutes=5, latitude=1.0, longitude=2.0,
+        updated_at=None,
+    )
+    coord = WingDeliveryCoordinator(
+        hass, None, email, _FakeTracking(live), email_interval=60, live_interval=20
+    )
+
+    await coord.async_refresh()
+    await hass.async_block_till_done()
+    assert coord.data.status == STATUS_EN_ROUTE
+    assert coord.last_update_success is True
+
+    # A later email hiccup must keep the last state, not flap to unavailable.
+    email.fail = True
+    freezer.move_to("2026-08-21T12:01:00+00:00")
+    await coord.async_refresh()
+    await hass.async_block_till_done()
+    assert coord.last_update_success is True
+    assert coord.data.status == STATUS_EN_ROUTE
