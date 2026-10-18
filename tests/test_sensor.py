@@ -42,6 +42,8 @@ async def test_status_sensor_state_and_attributes(hass):
     assert state.state == STATUS_ARRIVING
     assert state.attributes["order_id"] == "A1"
     assert state.attributes["items"] == ["Test Snack Item"]
+    # The tracking link carries a private trackingId; it must never be exposed.
+    assert "tracking_url" not in state.attributes
 
 
 async def test_eta_sensor_value(hass):

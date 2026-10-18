@@ -65,9 +65,14 @@ provider-specific password as appropriate.
 - `device_tracker.wing_drone` - drone position on the map (live deliveries)
 
 The `sensor.wing_delivery_status` entity also exposes attributes: `order_id`,
-`items` (the ordered item names, parsed from the receipt email), `tracking_url`,
-and `last_update`. In practice Wing goes straight from `en_route` to
-`delivered`, so the `arriving` state is rarely (if ever) emitted.
+`items` (the ordered item names, parsed from the receipt email), and
+`last_update`. In practice Wing goes straight from `en_route` to `delivered`,
+so the `arriving` state is rarely (if ever) emitted.
+
+The order's tracking link is deliberately not exposed. Its `trackingId` is a
+private token that grants access to the drone's live position and your delivery
+location, so the integration keeps it in memory only and never writes it to
+entity state, the recorder history, or the logs.
 
 ## Automations
 

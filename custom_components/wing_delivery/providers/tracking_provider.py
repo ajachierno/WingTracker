@@ -172,7 +172,9 @@ class TrackingProvider:
                     return None
                 payload = await resp.json()
         except (ClientError, TimeoutError, ValueError) as err:
-            _LOGGER.debug("Wing tracking fetch failed: %s", err)
+            # Log the error type only: aiohttp errors can include the request
+            # URL, and its query string carries the private trackingId.
+            _LOGGER.debug("Wing tracking fetch failed: %s", type(err).__name__)
             return None
         if not isinstance(payload, dict):
             return None
