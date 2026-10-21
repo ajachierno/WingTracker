@@ -234,3 +234,37 @@ async def test_transient_email_error_keeps_last_state(hass, freezer):
     await hass.async_block_till_done()
     assert coord.last_update_success is True
     assert coord.data.status == STATUS_EN_ROUTE
+
+
+async def test_rejected_password_raises_auth_failed_even_with_state(hass, freezer):
+    """A bad password must surface as reauth, not be hidden as a transient error."""
+    from homeassistant.exceptions import ConfigEntryAuthFailed
+
+    from custom_components.wing_delivery.providers.email_provider import InvalidAuth
+
+    freezer.move_to("2026-08-21T12:00:00+00:00")
+    order = EmailOrder(
+        order_id="A1", status=STATUS_EN_ROUTE,
+        tracking_url="u", tracking_token="t", last_update=None,
+    )
+
+    class _RevokedEmail:
+        def __init__(self):
+            self.revoked = False
+
+        async def async_fetch_latest(self, hass):
+            if self.revoked:
+                raise InvalidAuth("AUTHENTICATIONFAILED")
+            return order
+
+    email = _RevokedEmail()
+    coord = WingDeliveryCoordinator(
+        hass, None, email, _FakeTracking(), email_interval=60, live_interval=20
+    )
+    await coord.async_refresh()
+    assert coord.data.status == STATUS_EN_ROUTE
+
+    email.revoked = True
+    freezer.move_to("2026-08-21T12:01:00+00:00")
+    with pytest.raises(ConfigEntryAuthFailed):
+        await coord._async_update_data()

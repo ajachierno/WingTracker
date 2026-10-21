@@ -7,12 +7,13 @@ from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, EVENT_STATUS_CHANGED, STATUS_NONE
 from .models import EmailOrder, LiveTracking, WingDeliveryData
-from .providers.email_provider import EmailProvider
+from .providers.email_provider import EmailProvider, InvalidAuth
 from .providers.tracking_provider import TrackingProvider
 from .state import MODE_GRACE, MODE_LIVE, merge as _merge, resolve
 
@@ -92,6 +93,12 @@ class WingDeliveryCoordinator(DataUpdateCoordinator[WingDeliveryData]):
     async def _async_update_data(self) -> WingDeliveryData:
         try:
             email = await self._async_fetch_email()
+        except InvalidAuth as err:
+            # A rejected password won't fix itself. Fail loudly so HA starts
+            # the reauth flow instead of silently keeping stale state.
+            raise ConfigEntryAuthFailed(
+                f"Mailbox login rejected: {err}"
+            ) from err
         except (imaplib.IMAP4.error, OSError) as err:
             # First-ever fetch failing means setup can't validate -> surface it.
             # A later transient hiccup must NOT flap entities to "unavailable":
