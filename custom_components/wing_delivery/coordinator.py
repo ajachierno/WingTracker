@@ -8,10 +8,11 @@ from datetime import datetime, timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, EVENT_STATUS_CHANGED, STATUS_NONE
+from .const import DOMAIN, EVENT_STATUS_CHANGED, STATUS_DELIVERED, STATUS_NONE
 from .models import EmailOrder, LiveTracking, WingDeliveryData
 from .providers.email_provider import EmailProvider, InvalidAuth
 from .providers.tracking_provider import TrackingProvider
@@ -21,6 +22,13 @@ _LOGGER = logging.getLogger(__name__)
 
 # How often to re-check the delivered-order grace countdown.
 _GRACE_POLL = 60  # seconds
+
+STORAGE_VERSION = 1
+
+
+def storage_key(entry_id: str) -> str:
+    """Storage key for the per-entry record of the last delivered order."""
+    return f"{DOMAIN}.{entry_id}"
 
 
 class WingDeliveryCoordinator(DataUpdateCoordinator[WingDeliveryData]):
@@ -62,6 +70,24 @@ class WingDeliveryCoordinator(DataUpdateCoordinator[WingDeliveryData]):
         # when the current order first showed delivered.
         self._completed_order_id: str | None = None
         self._delivered_at: datetime | None = None
+        # The last delivered order id is saved to disk so a restart doesn't
+        # replay its lingering receipt as a fresh "delivered" (which would
+        # re-fire status-change events and any automations watching it).
+        self._store: Store[dict[str, str]] | None = (
+            Store(hass, STORAGE_VERSION, storage_key(config_entry.entry_id))
+            if config_entry is not None
+            else None
+        )
+        self._saved_order_id: str | None = None
+
+    async def _async_setup(self) -> None:
+        """Restore the last delivered order before the first refresh."""
+        if self._store is None:
+            return
+        stored = await self._store.async_load()
+        if stored:
+            self._saved_order_id = stored.get("delivered_order_id")
+            self._completed_order_id = self._saved_order_id
 
     @staticmethod
     def merge(
@@ -140,6 +166,15 @@ class WingDeliveryCoordinator(DataUpdateCoordinator[WingDeliveryData]):
         self._completed_order_id = decision.completed_order_id
         self._delivered_at = decision.delivered_at
         data = decision.data
+
+        if (
+            self._store is not None
+            and data.status == STATUS_DELIVERED
+            and data.order_id is not None
+            and data.order_id != self._saved_order_id
+        ):
+            self._saved_order_id = data.order_id
+            await self._store.async_save({"delivered_order_id": data.order_id})
 
         if data.status != self._last_status:
             self.hass.bus.async_fire(
