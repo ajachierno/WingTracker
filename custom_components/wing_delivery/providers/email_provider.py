@@ -8,6 +8,7 @@ from email.message import Message
 from email.utils import parsedate_to_datetime
 
 from homeassistant.core import HomeAssistant
+from homeassistant.util.ssl import client_context
 
 from ..const import (
     STATUS_ARRIVING,
@@ -149,6 +150,10 @@ def parse_email(raw: bytes) -> EmailOrder | None:
     )
 
 
+class InvalidAuth(Exception):
+    """The IMAP server rejected the username or password."""
+
+
 class EmailProvider:
     """Fetch the most recent Wing order email over IMAP."""
 
@@ -172,10 +177,28 @@ class EmailProvider:
         """Return the newest Wing order email as an EmailOrder, or None."""
         return await hass.async_add_executor_job(self._fetch_latest)
 
-    def _fetch_latest(self) -> EmailOrder | None:
-        client = imaplib.IMAP4_SSL(self._host, self._port)
+    def _connect(self) -> imaplib.IMAP4_SSL:
+        """Open a certificate-verified IMAP connection and log in.
+
+        Without an explicit context imaplib uses an unverified one, so the
+        password could be read by anyone able to intercept the connection.
+        """
+        client = imaplib.IMAP4_SSL(
+            self._host, self._port, ssl_context=client_context()
+        )
         try:
             client.login(self._username, self._password)
+        except imaplib.IMAP4.error as err:
+            _logout(client)
+            raise InvalidAuth(str(err)) from err
+        except BaseException:
+            _logout(client)
+            raise
+        return client
+
+    def _fetch_latest(self) -> EmailOrder | None:
+        client = self._connect()
+        try:
             client.select(self._folder, readonly=True)
             typ, data = client.search(None, "FROM", f'"{self._sender}"')
             if typ != "OK" or not data or not data[0]:
@@ -191,18 +214,19 @@ class EmailProvider:
                     return order
             return None
         finally:
-            try:
-                client.logout()
-            except Exception:  # noqa: BLE001 - best-effort cleanup
-                pass
+            _logout(client)
 
     def verify_login(self) -> None:
-        """Login and logout to validate credentials. Raises on failure."""
-        client = imaplib.IMAP4_SSL(self._host, self._port)
-        try:
-            client.login(self._username, self._password)
-        finally:
-            try:
-                client.logout()
-            except Exception:  # noqa: BLE001
-                pass
+        """Login and logout to validate credentials.
+
+        Raises InvalidAuth for rejected credentials, OSError (including
+        ssl.SSLCertVerificationError) for connection problems.
+        """
+        _logout(self._connect())
+
+
+def _logout(client: imaplib.IMAP4) -> None:
+    try:
+        client.logout()
+    except Exception:  # noqa: BLE001 - best-effort cleanup
+        pass

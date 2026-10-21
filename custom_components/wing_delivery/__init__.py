@@ -10,6 +10,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.storage import Store
 
 from .const import (
     CONF_EMAIL_INTERVAL,
@@ -22,7 +23,7 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
-from .coordinator import WingDeliveryCoordinator
+from .coordinator import STORAGE_VERSION, WingDeliveryCoordinator, storage_key
 from .providers.email_provider import EmailProvider
 from .providers.tracking_provider import TrackingProvider
 
@@ -68,6 +69,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unloaded:
         hass.data[DOMAIN].pop(entry.entry_id, None)
     return unloaded
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Delete the saved delivered-order record when the entry is removed."""
+    await Store(hass, STORAGE_VERSION, storage_key(entry.entry_id)).async_remove()
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
